@@ -12,7 +12,8 @@ const firebaseConfig = {
     apiKey: "AIzaSyDuCRjLF1aNgfh0bPKiknm1HWUQ1dA6dmI",
     authDomain: "carteiracana.firebaseapp.com",
     projectId: "carteiracana",
-    storageBucket: "carteiracana.appspot.com",
+    // A CORREÇÃO ESTÁ NESTA LINHA:
+    storageBucket: "carteiracana.appspot.com", // DEVE SER appspot.com
     messagingSenderId: "950424552534",
     appId: "1:950424552534:web:b96c8a85ba02e4868127f7"
 };
@@ -32,7 +33,6 @@ const dbService = {
     init() {
         return new Promise((resolve, reject) => {
             try {
-                // A inicialização do Firebase usará o objeto 'firebaseConfig' acima
                 const app = initializeApp(firebaseConfig);
                 this.db = getFirestore(app);
                 this.auth = getAuth(app);
@@ -225,7 +225,6 @@ const appController = {
         });
         this.taskForm.addEventListener('submit', (e) => this.handleFormSubmit(e));
         
-        // Listeners globais para o drag-and-drop de toque
         document.addEventListener('touchmove', (e) => this.handleTouchMove(e), { passive: false });
         document.addEventListener('touchend', (e) => this.handleTouchEnd(e));
     },
@@ -300,10 +299,8 @@ const appController = {
         const columns = document.querySelectorAll('.kanban-column');
 
         taskCards.forEach(card => {
-            // Eventos para Rato
             card.addEventListener('dragstart', (e) => this.handleDragStart(e, card));
             card.addEventListener('dragend', () => card.classList.remove('dragging'));
-            // Eventos para Toque
             card.addEventListener('touchstart', (e) => this.handleTouchStart(e, card), { passive: false });
         });
 
@@ -317,7 +314,6 @@ const appController = {
         });
     },
 
-    // --- Funções de Drag and Drop para RATO ---
     handleDragStart(event, card) {
         this.draggedElement = card;
         event.dataTransfer.setData('text/plain', card.dataset.id);
@@ -333,7 +329,6 @@ const appController = {
         this.draggedElement = null;
     },
 
-    // --- Funções de Drag and Drop para TOQUE (Mobile) ---
     handleTouchStart(event, card) {
         if (event.touches.length !== 1) return;
         this.isDraggingTouch = true;
@@ -397,7 +392,6 @@ const appController = {
         this.ghostElement = null;
     },
 
-    // --- Função unificada para atualizar o status ---
     async updateTaskStatus(taskId, newStatus) {
         try {
             await dbService.updateTask(taskId, { status: newStatus });
