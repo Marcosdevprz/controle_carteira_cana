@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <!-- Meta tag essencial para design responsivo -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Controle de Tarefas Laranjeiras</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #0F1A13; /* Verde muito escuro */
+            color: #E0E0E0; /* Branco suave */
+        }
+        .kanban-board {
+            display: flex;
+            gap: 1.5rem;
+            padding: 1.5rem;
+            overflow-x: auto; /* Permite rolagem horizontal em desktops se necessário */
+            min-height: calc(100vh - 150px);
+        }
+        .kanban-column {
+            flex: 1 0 320px;
+            min-width: 320px;
+            max-width: 320px;
+            background-color: #1A2C2A; /* Verde ardósia escuro */
+            border-radius: 0.75rem;
+            padding: 1rem;
+            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+            transition: background-color 0.3s;
+        }
+        .kanban-column.drag-over {
+            background-color: #2F5852; /* Verde mais claro para destaque */
+        }
+        .column-title {
+            font-size: 1.125rem;
+            font-weight: 600;
+            padding: 0.5rem;
+            border-bottom: 2px solid #3E6F68;
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .column-title-text {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .task-count {
+            background-color: #3E6F68;
+            color: #E0E0E0;
+            border-radius: 9999px;
+            padding: 0.1rem 0.6rem;
+            font-size: 0.75rem;
+            font-weight: 500;
+        }
+        .task-card {
+            background-color: #2A4B46; /* Verde escuro médio */
+            border-radius: 0.5rem;
+            padding: 1rem;
+            margin-bottom: 1rem;
+            cursor: grab;
+            transition: all 0.2s ease-in-out;
+            border-left: 5px solid transparent;
+        }
+        .task-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.2), 0 4px 6px -2px rgb(0 0 0 / 0.1);
+        }
+        .task-card.dragging {
+            opacity: 0.5;
+            transform: rotate(3deg);
+        }
+        .priority-alta { border-left-color: #EF4444; }
+        .priority-media { border-left-color: #F59E0B; }
+        .priority-baixa { border-left-color: #22C55E; }
+        .modal-backdrop {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.7);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 50;
+        }
+        .modal-content {
+            background-color: #1A2C2A;
+            padding: 2rem;
+            border-radius: 0.75rem;
+            width: 90%;
+            max-width: 500px;
+        }
+        .form-input, .form-textarea, .form-select {
+            background-color: #2A4B46 !important;
+            border-color: #3E6F68 !important;
+            color: #E0E0E0 !important;
+        }
+        .form-input::placeholder, .form-textarea::placeholder {
+            color: #9CA3AF;
+        }
+        .empty-state, .loading-state {
+            text-align: center;
+            padding: 2rem;
+            color: #9CA3AF;
+            border: 2px dashed #3E6F68;
+            border-radius: 0.5rem;
+            margin-top: 1rem;
+        }
+        .loading-spinner {
+            border: 4px solid #3E6F68;
+            border-top: 4px solid #10B981; /* Verde esmeralda */
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        /* Custom scrollbar */
+        .kanban-board::-webkit-scrollbar { height: 8px; }
+        .kanban-board::-webkit-scrollbar-track { background: #1A2C2A; border-radius: 10px; }
+        .kanban-board::-webkit-scrollbar-thumb { background: #3E6F68; border-radius: 10px; }
+        .kanban-board::-webkit-scrollbar-thumb:hover { background: #2F5852; }
+
+        /* =============================================== */
+        /* ESTILOS RESPONSIVOS PARA DISPOSITIVOS MÓVEIS    */
+        /* =============================================== */
+        @media (max-width: 768px) {
+            .kanban-board {
+                flex-direction: column; /* Empilha as colunas verticalmente */
+                align-items: center;    /* Centraliza as colunas na tela */
+                overflow-x: hidden;     /* Remove a rolagem horizontal */
+                padding: 1rem;
+            }
+
+            .kanban-column {
+                width: 95%;             /* Faz a coluna ocupar quase toda a largura */
+                min-width: unset;       /* Remove a largura mínima */
+                max-width: 450px;       /* Define uma largura máxima para não ficar muito largo em tablets */
+                flex-shrink: 0;
+            }
+
+            .header-title {
+                font-size: 1.25rem; /* Reduz um pouco o título no cabeçalho */
+            }
+
+            .new-task-btn {
+                padding: 0.5rem 0.75rem; /* Ajusta o padding do botão */
+                font-size: 0.875rem;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <header class="p-4 bg-[#0D1510] shadow-md flex justify-between items-center">
+        <div>
+            <h1 class="header-title text-2xl font-bold text-white"><i class="fas fa-tasks mr-2 text-green-300"></i>Controle de Tarefas Laranjeiras</h1>
+            <p id="userIdDisplay" class="text-xs text-gray-400 mt-1">ID Local: Carregando...</p>
+        </div>
+        <button id="addTaskBtn" class="new-task-btn bg-emerald-500 hover:bg-emerald-600 text-white font-bold py-2 px-4 rounded-lg transition-colors duration-300">
+            <i class="fas fa-plus mr-2"></i>Nova Tarefa
+        </button>
+    </header>
+
+    <main id="kanbanBoard" class="kanban-board">
+        <!-- Coluna A Fazer -->
+        <div class="kanban-column" id="todo" data-status="todo">
+            <h2 class="column-title">
+                <span class="column-title-text"><i class="fas fa-list-alt text-green-300"></i>A Fazer</span>
+                <span class="task-count">0</span>
+            </h2>
+            <div class="tasks-container min-h-[100px]"></div>
+        </div>
+
+        <!-- Coluna Em Andamento -->
+        <div class="kanban-column" id="inprogress" data-status="inprogress">
+            <h2 class="column-title">
+                <span class="column-title-text"><i class="fas fa-cogs text-green-300"></i>Em Andamento</span>
+                <span class="task-count">0</span>
+            </h2>
+            <div class="tasks-container min-h-[100px]"></div>
+        </div>
+
+        <!-- Coluna Concluído -->
+        <div class="kanban-column" id="done" data-status="done">
+            <h2 class="column-title">
+                <span class="column-title-text"><i class="fas fa-check-circle text-green-300"></i>Concluído</span>
+                <span class="task-count">0</span>
+            </h2>
+            <div class="tasks-container min-h-[100px]"></div>
+        </div>
+    </main>
+
+    <!-- Modal para Adicionar/Editar Tarefa -->
+    <div id="taskModal" class="modal-backdrop hidden">
+        <div class="modal-content">
+            <h2 id="modalTitle" class="text-2xl font-bold mb-6 text-white">Nova Tarefa</h2>
+            <form id="taskForm">
+                <input type="hidden" id="taskId">
+                <div class="mb-4">
+                    <label for="taskTitle" class="block text-gray-300 text-sm font-bold mb-2">Título da Tarefa</label>
+                    <input type="text" id="taskTitle" name="title" class="form-input shadow appearance-none border rounded w-full py-2 px-3 leading-tight focus:outline-none focus:shadow-outline" required>
+                </div>
+                <div class="mb-4">
+                    <label for="taskDescription" class="block text-gray-300 text-sm font-bold mb-2">Descrição</label>
+                    <textarea id="taskDescription" name="description" rows="3" class="form-textarea shadow appearance-none border rounded w-full py-2 px-3 leading-tight focus:outline-none focus:shadow-outline"></textarea>
+                </div>
+                <div class="mb-4">
+                    <label for="taskDueDate" class="block text-gray-300 text-sm font-bold mb-2">Data de Entrega</label>
+                    <input type="date" id="taskDueDate" name="dueDate" class="form-input shadow appearance-none border rounded w-full py-2 px-3 leading-tight focus:outline-none focus:shadow-outline">
+                </div>
+                <div class="mb-6">
+                    <label for="taskPriority" class="block text-gray-300 text-sm font-bold mb-2">Prioridade</label>
+                    <select id="taskPriority" name="priority" class="form-select shadow appearance-none border rounded w-full py-2 px-3 leading-tight focus:outline-none focus:shadow-outline">
+                        <option value="baixa" class="text-green-500">Baixa</option>
+                        <option value="media" class="text-yellow-500">Média</option>
+                        <option value="alta" class="text-red-500">Alta</option>
+                    </select>
+                </div>
+                <div class="flex items-center justify-end gap-4">
+                    <button type="button" id="cancelBtn" class="bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded-lg transition-colors">Cancelar</button>
+                    <button type="submit" class="bg-emerald-500 hover:bg-emerald-600 text-white font-bold py-2 px-4 rounded-lg transition-colors">Salvar Tarefa</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Link para o arquivo JavaScript externo -->
+    <script type="module" src="funcionalidades.js"></script>
+</body>
+</html>
