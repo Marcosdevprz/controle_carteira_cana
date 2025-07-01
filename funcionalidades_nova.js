@@ -6,19 +6,18 @@ import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gsta
 import { getFirestore, collection, onSnapshot, addDoc, doc, updateDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
 // =================================================================================
-// PASSO DE CONFIGURAÇÃO OBRIGATÓRIO
-// Substitua o objeto abaixo pela configuração do seu projeto no Firebase.
+// CONFIGURAÇÃO DO FIREBASE COM AS SUAS CHAVES
 // =================================================================================
 const firebaseConfig = {
-  apiKey: "AIzaSyDuCRjLF1aNgfh0bPKiknm1HWUQ1dA6dmI",
-  authDomain: "carteiracana.firebaseapp.com",
-  projectId: "carteiracana",
-  storageBucket: "carteiracana.firebasestorage.app",
-  messagingSenderId: "950424552534",
-  appId: "1:950424552534:web:b96c8a85ba02e4868127f7"
+    apiKey: "AIzaSyDuCRjLF1aNgfh0bPKiknm1HWUQ1dA6dmI",
+    authDomain: "carteiracana.firebaseapp.com",
+    projectId: "carteiracana",
+    storageBucket: "carteiracana.appspot.com",
+    messagingSenderId: "950424552534",
+    appId: "1:950424552534:web:b96c8a85ba02e4868127f7"
 };
 // =================================================================================
-// FIM DO PASSO DE CONFIGURAÇÃO
+// FIM DA CONFIGURAÇÃO
 // =================================================================================
 
 // =================================================================================
@@ -33,6 +32,7 @@ const dbService = {
     init() {
         return new Promise((resolve, reject) => {
             try {
+                // A inicialização do Firebase usará o objeto 'firebaseConfig' acima
                 const app = initializeApp(firebaseConfig);
                 this.db = getFirestore(app);
                 this.auth = getAuth(app);
