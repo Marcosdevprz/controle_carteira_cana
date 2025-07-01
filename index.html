@@ -2,7 +2,6 @@
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
-    <!-- Meta tag essencial para design responsivo -->
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Controle de Tarefas Laranjeiras</title>
     <script src="https://cdn.tailwindcss.com"></script>
@@ -10,54 +9,28 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
     <style>
+        /* Estilos base e tema de cores */
         body {
             font-family: 'Inter', sans-serif;
             background-color: #0F1A13; /* Verde muito escuro */
             color: #E0E0E0; /* Branco suave */
         }
-        .kanban-board {
-            display: flex;
-            gap: 1.5rem;
-            padding: 1.5rem;
-            overflow-x: auto; /* Permite rolagem horizontal em desktops se necessário */
-            min-height: calc(100vh - 150px);
+
+        /* Layout fluido com CSS Grid que se adapta a qualquer tela */
+        #kanbanBoard {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+            gap: 1.5rem; /* O mesmo que `gap-6` no Tailwind */
         }
-        .kanban-column {
-            flex: 1 0 320px;
-            min-width: 320px;
-            max-width: 320px;
-            background-color: #1A2C2A; /* Verde ardósia escuro */
-            border-radius: 0.75rem;
-            padding: 1rem;
-            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
-            transition: background-color 0.3s;
-        }
-        .kanban-column.drag-over {
-            background-color: #2F5852; /* Verde mais claro para destaque */
-        }
+        
         .column-title {
             font-size: 1.125rem;
             font-weight: 600;
-            padding: 0.5rem;
+            padding-bottom: 0.75rem;
             border-bottom: 2px solid #3E6F68;
             margin-bottom: 1rem;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
         }
-        .column-title-text {
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-        }
-        .task-count {
-            background-color: #3E6F68;
-            color: #E0E0E0;
-            border-radius: 9999px;
-            padding: 0.1rem 0.6rem;
-            font-size: 0.75rem;
-            font-weight: 500;
-        }
+
         .task-card {
             background-color: #2A4B46; /* Verde escuro médio */
             border-radius: 0.5rem;
@@ -75,28 +48,18 @@
             opacity: 0.5;
             transform: rotate(3deg);
         }
+
         .priority-alta { border-left-color: #EF4444; }
         .priority-media { border-left-color: #F59E0B; }
         .priority-baixa { border-left-color: #22C55E; }
+
         .modal-backdrop {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
             background-color: rgba(0, 0, 0, 0.7);
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            z-index: 50;
         }
         .modal-content {
             background-color: #1A2C2A;
-            padding: 2rem;
-            border-radius: 0.75rem;
-            width: 90%;
-            max-width: 500px;
         }
+
         .form-input, .form-textarea, .form-select {
             background-color: #2A4B46 !important;
             border-color: #3E6F68 !important;
@@ -105,6 +68,8 @@
         .form-input::placeholder, .form-textarea::placeholder {
             color: #9CA3AF;
         }
+        
+        /* Estados de vazio e carregamento */
         .empty-state, .loading-state {
             text-align: center;
             padding: 2rem;
@@ -115,7 +80,7 @@
         }
         .loading-spinner {
             border: 4px solid #3E6F68;
-            border-top: 4px solid #10B981; /* Verde esmeralda */
+            border-top: 4px solid #10B981;
             border-radius: 50%;
             width: 40px;
             height: 40px;
@@ -126,85 +91,57 @@
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
         }
-        /* Custom scrollbar */
-        .kanban-board::-webkit-scrollbar { height: 8px; }
-        .kanban-board::-webkit-scrollbar-track { background: #1A2C2A; border-radius: 10px; }
-        .kanban-board::-webkit-scrollbar-thumb { background: #3E6F68; border-radius: 10px; }
-        .kanban-board::-webkit-scrollbar-thumb:hover { background: #2F5852; }
 
-        /* =============================================== */
-        /* ESTILOS RESPONSIVOS PARA DISPOSITIVOS MÓVEIS    */
-        /* =============================================== */
-        @media (max-width: 768px) {
-            .kanban-board {
-                flex-direction: column; /* Empilha as colunas verticalmente */
-                align-items: center;    /* Centraliza as colunas na tela */
-                overflow-x: hidden;     /* Remove a rolagem horizontal */
-                padding: 1rem;
-            }
-
-            .kanban-column {
-                width: 95%;             /* Faz a coluna ocupar quase toda a largura */
-                min-width: unset;       /* Remove a largura mínima */
-                max-width: 450px;       /* Define uma largura máxima para não ficar muito largo em tablets */
-                flex-shrink: 0;
-            }
-
-            .header-title {
-                font-size: 1.25rem; /* Reduz um pouco o título no cabeçalho */
-            }
-
-            .new-task-btn {
-                padding: 0.5rem 0.75rem; /* Ajusta o padding do botão */
-                font-size: 0.875rem;
-            }
-        }
+        /* Custom scrollbar para o container de tarefas, se necessário */
+        .tasks-container::-webkit-scrollbar { width: 6px; }
+        .tasks-container::-webkit-scrollbar-track { background: #1A2C2A; }
+        .tasks-container::-webkit-scrollbar-thumb { background: #3E6F68; border-radius: 10px; }
     </style>
 </head>
-<body>
+<body class="min-h-screen">
 
-    <header class="p-4 bg-[#0D1510] shadow-md flex justify-between items-center">
+    <header class="p-4 bg-[#0D1510] shadow-md flex flex-wrap justify-between items-center gap-4">
         <div>
-            <h1 class="header-title text-2xl font-bold text-white"><i class="fas fa-tasks mr-2 text-green-300"></i>Controle de Tarefas Laranjeiras</h1>
-            <p id="userIdDisplay" class="text-xs text-gray-400 mt-1">ID Local: Carregando...</p>
+            <h1 class="text-xl sm:text-2xl font-bold text-white"><i class="fas fa-tasks mr-2 text-green-300"></i>Controle de Tarefas Laranjeiras</h1>
+            <p id="userIdDisplay" class="text-xs text-gray-400 mt-1">Conectando...</p>
         </div>
-        <button id="addTaskBtn" class="new-task-btn bg-emerald-500 hover:bg-emerald-600 text-white font-bold py-2 px-4 rounded-lg transition-colors duration-300">
-            <i class="fas fa-plus mr-2"></i>Nova Tarefa
+        <button id="addTaskBtn" class="bg-emerald-500 hover:bg-emerald-600 text-white font-bold py-2 px-4 rounded-lg transition-colors duration-300 flex-shrink-0">
+            <i class="fas fa-plus mr-2"></i><span>Nova Tarefa</span>
         </button>
     </header>
 
-    <main id="kanbanBoard" class="kanban-board">
+    <main id="kanbanBoard" class="p-4 sm:p-6">
         <!-- Coluna A Fazer -->
-        <div class="kanban-column" id="todo" data-status="todo">
-            <h2 class="column-title">
-                <span class="column-title-text"><i class="fas fa-list-alt text-green-300"></i>A Fazer</span>
-                <span class="task-count">0</span>
+        <div id="todo" data-status="todo" class="bg-[#1A2C2A] rounded-xl p-4 flex flex-col">
+            <h2 class="column-title flex justify-between items-center">
+                <span class="flex items-center gap-2"><i class="fas fa-list-alt text-green-300"></i>A Fazer</span>
+                <span class="task-count bg-[#3E6F68] text-white text-xs font-medium me-2 px-2.5 py-0.5 rounded-full">0</span>
             </h2>
-            <div class="tasks-container min-h-[100px]"></div>
+            <div class="tasks-container flex-grow min-h-[150px] overflow-y-auto"></div>
         </div>
 
         <!-- Coluna Em Andamento -->
-        <div class="kanban-column" id="inprogress" data-status="inprogress">
-            <h2 class="column-title">
-                <span class="column-title-text"><i class="fas fa-cogs text-green-300"></i>Em Andamento</span>
-                <span class="task-count">0</span>
+        <div id="inprogress" data-status="inprogress" class="bg-[#1A2C2A] rounded-xl p-4 flex flex-col">
+            <h2 class="column-title flex justify-between items-center">
+                <span class="flex items-center gap-2"><i class="fas fa-cogs text-green-300"></i>Em Andamento</span>
+                <span class="task-count bg-[#3E6F68] text-white text-xs font-medium me-2 px-2.5 py-0.5 rounded-full">0</span>
             </h2>
-            <div class="tasks-container min-h-[100px]"></div>
+            <div class="tasks-container flex-grow min-h-[150px] overflow-y-auto"></div>
         </div>
 
         <!-- Coluna Concluído -->
-        <div class="kanban-column" id="done" data-status="done">
-            <h2 class="column-title">
-                <span class="column-title-text"><i class="fas fa-check-circle text-green-300"></i>Concluído</span>
-                <span class="task-count">0</span>
+        <div id="done" data-status="done" class="bg-[#1A2C2A] rounded-xl p-4 flex flex-col">
+            <h2 class="column-title flex justify-between items-center">
+                <span class="flex items-center gap-2"><i class="fas fa-check-circle text-green-300"></i>Concluído</span>
+                <span class="task-count bg-[#3E6F68] text-white text-xs font-medium me-2 px-2.5 py-0.5 rounded-full">0</span>
             </h2>
-            <div class="tasks-container min-h-[100px]"></div>
+            <div class="tasks-container flex-grow min-h-[150px] overflow-y-auto"></div>
         </div>
     </main>
 
     <!-- Modal para Adicionar/Editar Tarefa -->
-    <div id="taskModal" class="modal-backdrop hidden">
-        <div class="modal-content">
+    <div id="taskModal" class="modal-backdrop fixed inset-0 z-50 flex items-center justify-center hidden">
+        <div class="modal-content rounded-lg p-6 sm:p-8 w-11/12 max-w-lg">
             <h2 id="modalTitle" class="text-2xl font-bold mb-6 text-white">Nova Tarefa</h2>
             <form id="taskForm">
                 <input type="hidden" id="taskId">
@@ -236,7 +173,6 @@
         </div>
     </div>
 
-    <!-- Link para o arquivo JavaScript externo -->
     <script type="module" src="funcionalidades.js"></script>
 </body>
 </html>
