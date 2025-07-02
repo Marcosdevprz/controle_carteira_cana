@@ -3,176 +3,383 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Controle de Tarefas Laranjeiras</title>
+    <title>Agenda Laranjeiras</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <style>
-        /* Estilos base e tema de cores */
         body {
             font-family: 'Inter', sans-serif;
-            background-color: #0F1A13; /* Verde muito escuro */
-            color: #E0E0E0; /* Branco suave */
+            background-color: #0a192f;
+            background-image: linear-gradient(to br, #020c1b, #0a192f);
         }
-
-        /* Layout fluido com CSS Grid que se adapta a qualquer tela */
-        #kanbanBoard {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-            gap: 1.5rem; /* O mesmo que `gap-6` no Tailwind */
+        .title-glow {
+            text-shadow: 0 0 8px rgba(56, 189, 248, 0.4), 0 0 20px rgba(56, 189, 248, 0.3);
         }
-        
-        .column-title {
-            font-size: 1.125rem;
-            font-weight: 600;
-            padding-bottom: 0.75rem;
-            border-bottom: 2px solid #3E6F68;
-            margin-bottom: 1rem;
+        .kanban-column {
+            min-height: 400px;
+            background-color: rgba(15, 23, 42, 0.6); /* slate-900 com transparência */
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(51, 65, 85, 0.5); /* slate-700 com transparência */
+            transition: background-color 0.3s ease;
         }
-
-        .task-card {
-            background-color: #2A4B46; /* Verde escuro médio */
-            border-radius: 0.5rem;
-            padding: 1rem;
-            margin-bottom: 1rem;
+        .task {
             cursor: grab;
-            transition: all 0.2s ease-in-out;
-            border-left: 5px solid transparent;
+            border: 1px solid #334155; /* slate-700 */
+            transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
         }
-        .task-card:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.2), 0 4px 6px -2px rgb(0 0 0 / 0.1);
+        .task:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.25);
+            border-color: #475569; /* slate-600 */
         }
-        .task-card.dragging {
+        .task:active { cursor: grabbing; }
+        .task.dragging {
             opacity: 0.5;
-            transform: rotate(3deg);
+            transform: scale(1.05);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
         }
-
-        .priority-alta { border-left-color: #EF4444; }
-        .priority-media { border-left-color: #F59E0B; }
-        .priority-baixa { border-left-color: #22C55E; }
-
+        .column-drag-over {
+            background-color: rgba(30, 41, 59, 0.7); /* slate-800 com transparência */
+        }
+        .delete-btn {
+            opacity: 0;
+            transition: opacity 0.2s ease, color 0.2s ease;
+        }
+        .task:hover .delete-btn { opacity: 1; }
+        .delete-btn:hover { color: #f87171; /* red-400 */ }
+        
+        /* Estilo para o modal */
         .modal-backdrop {
-            background-color: rgba(0, 0, 0, 0.7);
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            display: flex; justify-content: center; align-items: center;
+            z-index: 1000;
+            backdrop-filter: blur(8px);
         }
         .modal-content {
-            background-color: #1A2C2A;
+            background-color: rgba(30, 41, 59, 0.8); /* slate-800 com mais transparência */
+            backdrop-filter: blur(16px);
+            border: 1px solid rgba(51, 65, 85, 0.5);
+            padding: 2rem; border-radius: 0.75rem; /* rounded-xl */
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.4);
+            max-width: 95%; width: 500px; max-height: 90vh; overflow-y: auto;
         }
+        .priority-baixa { background-color: #10B981; color: white; } /* Emerald-500 */
+        .priority-media { background-color: #F59E0B; color: white; } /* Amber-500 */
+        .priority-alta { background-color: #EF4444; color: white; } /* Red-500 */
 
-        .form-input, .form-textarea, .form-select {
-            background-color: #2A4B46 !important;
-            border-color: #3E6F68 !important;
-            color: #E0E0E0 !important;
-        }
-        .form-input::placeholder, .form-textarea::placeholder {
-            color: #9CA3AF;
-        }
-        
-        /* Estados de vazio e carregamento */
-        .empty-state, .loading-state {
-            text-align: center;
-            padding: 2rem;
-            color: #9CA3AF;
-            border: 2px dashed #3E6F68;
-            border-radius: 0.5rem;
-            margin-top: 1rem;
-        }
-        .loading-spinner {
-            border: 4px solid #3E6F68;
-            border-top: 4px solid #10B981;
-            border-radius: 50%;
-            width: 40px;
-            height: 40px;
-            animation: spin 1s linear infinite;
-            margin: 0 auto;
-        }
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-
-        /* Custom scrollbar para o container de tarefas, se necessário */
-        .tasks-container::-webkit-scrollbar { width: 6px; }
-        .tasks-container::-webkit-scrollbar-track { background: #1A2C2A; }
-        .tasks-container::-webkit-scrollbar-thumb { background: #3E6F68; border-radius: 10px; }
+        /* Custom scrollbar */
+        .modal-content::-webkit-scrollbar { width: 8px; }
+        .modal-content::-webkit-scrollbar-track { background: transparent; }
+        .modal-content::-webkit-scrollbar-thumb { background-color: #475569; border-radius: 20px; border: 3px solid transparent; }
     </style>
 </head>
-<body class="min-h-screen">
+<body class="text-slate-200 p-4 sm:p-6 md:p-8">
 
-    <header class="p-4 bg-[#0D1510] shadow-md flex flex-wrap justify-between items-center gap-4">
-        <div>
-            <h1 class="text-xl sm:text-2xl font-bold text-white"><i class="fas fa-tasks mr-2 text-green-300"></i>Controle de Tarefas Laranjeiras</h1>
-            <p id="userIdDisplay" class="text-xs text-gray-400 mt-1">Conectando...</p>
-        </div>
-        <button id="addTaskBtn" class="bg-emerald-500 hover:bg-emerald-600 text-white font-bold py-2 px-4 rounded-lg transition-colors duration-300 flex-shrink-0">
-            <i class="fas fa-plus mr-2"></i><span>Nova Tarefa</span>
-        </button>
-    </header>
+    <!-- Error Message Display -->
+    <div id="auth-error" class="hidden fixed top-5 left-1/2 -translate-x-1/2 bg-red-600 text-white p-4 rounded-lg shadow-lg z-[1001] max-w-xl text-center">
+        <p id="auth-error-message"></p>
+    </div>
 
-    <main id="kanbanBoard" class="p-4 sm:p-6">
-        <!-- Coluna A Fazer -->
-        <div id="todo" data-status="todo" class="bg-[#1A2C2A] rounded-xl p-4 flex flex-col">
-            <h2 class="column-title flex justify-between items-center">
-                <span class="flex items-center gap-2"><i class="fas fa-list-alt text-green-300"></i>A Fazer</span>
-                <span class="task-count bg-[#3E6F68] text-white text-xs font-medium me-2 px-2.5 py-0.5 rounded-full">0</span>
-            </h2>
-            <div class="tasks-container flex-grow min-h-[150px] overflow-y-auto"></div>
-        </div>
+    <div class="container mx-auto max-w-7xl">
+        
+        <header class="text-center mb-10">
+            <h1 class="text-4xl md:text-5xl font-bold text-emerald-400 title-glow">Agenda Laranjeiras</h1>
+            <p class="text-blue-300 mt-2 text-lg">Organize suas tarefas de forma simples e colaborativa.</p>
+            <p id="user-id-display" class="text-xs text-slate-500 mt-2"></p>
+        </header>
 
-        <!-- Coluna Em Andamento -->
-        <div id="inprogress" data-status="inprogress" class="bg-[#1A2C2A] rounded-xl p-4 flex flex-col">
-            <h2 class="column-title flex justify-between items-center">
-                <span class="flex items-center gap-2"><i class="fas fa-cogs text-green-300"></i>Em Andamento</span>
-                <span class="task-count bg-[#3E6F68] text-white text-xs font-medium me-2 px-2.5 py-0.5 rounded-full">0</span>
-            </h2>
-            <div class="tasks-container flex-grow min-h-[150px] overflow-y-auto"></div>
+        <div class="text-center mb-10">
+            <button id="show-add-task-modal-btn" class="bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-3 px-6 rounded-lg transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-emerald-500/50 flex items-center gap-2 mx-auto">
+                <i class="fas fa-plus-circle"></i>
+                Nova Tarefa
+            </button>
         </div>
 
-        <!-- Coluna Concluído -->
-        <div id="done" data-status="done" class="bg-[#1A2C2A] rounded-xl p-4 flex flex-col">
-            <h2 class="column-title flex justify-between items-center">
-                <span class="flex items-center gap-2"><i class="fas fa-check-circle text-green-300"></i>Concluído</span>
-                <span class="task-count bg-[#3E6F68] text-white text-xs font-medium me-2 px-2.5 py-0.5 rounded-full">0</span>
-            </h2>
-            <div class="tasks-container flex-grow min-h-[150px] overflow-y-auto"></div>
+        <div id="kanban-board" class="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div id="todo" class="kanban-column rounded-xl p-4 shadow-lg"><h2 class="font-bold text-2xl mb-4 text-center text-blue-300 border-b-2 border-blue-400/50 pb-2">A Fazer</h2><div id="todo-tasks" class="space-y-4"></div></div>
+            <div id="inprogress" class="kanban-column rounded-xl p-4 shadow-lg"><h2 class="font-bold text-2xl mb-4 text-center text-yellow-300 border-b-2 border-yellow-400/50 pb-2">Em Andamento</h2><div id="inprogress-tasks" class="space-y-4"></div></div>
+            <div id="done" class="kanban-column rounded-xl p-4 shadow-lg"><h2 class="font-bold text-2xl mb-4 text-center text-emerald-300 border-b-2 border-emerald-400/50 pb-2">Concluído</h2><div id="done-tasks" class="space-y-4"></div></div>
         </div>
-    </main>
+    </div>
 
     <!-- Modal para Adicionar/Editar Tarefa -->
-    <div id="taskModal" class="modal-backdrop fixed inset-0 z-50 flex items-center justify-center hidden">
-        <div class="modal-content rounded-lg p-6 sm:p-8 w-11/12 max-w-lg">
-            <h2 id="modalTitle" class="text-2xl font-bold mb-6 text-white">Nova Tarefa</h2>
-            <form id="taskForm">
-                <input type="hidden" id="taskId">
-                <div class="mb-4">
-                    <label for="taskTitle" class="block text-gray-300 text-sm font-bold mb-2">Título da Tarefa</label>
-                    <input type="text" id="taskTitle" name="title" class="form-input shadow appearance-none border rounded w-full py-2 px-3 leading-tight focus:outline-none focus:shadow-outline" required>
+    <div id="add-task-modal" class="modal-backdrop hidden">
+        <div class="modal-content">
+            <h2 id="modal-title" class="text-2xl font-bold mb-6 text-emerald-300">Criar Nova Tarefa</h2>
+            <form id="add-task-form" class="space-y-4">
+                <input type="hidden" id="task-id-input">
+                <div>
+                    <label for="task-name-input" class="block mb-1 font-medium text-blue-200">Nome da Tarefa</label>
+                    <input type="text" id="task-name-input" required class="w-full bg-slate-900/80 border border-slate-700 rounded-md py-2 px-3 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500">
                 </div>
-                <div class="mb-4">
-                    <label for="taskDescription" class="block text-gray-300 text-sm font-bold mb-2">Descrição</label>
-                    <textarea id="taskDescription" name="description" rows="3" class="form-textarea shadow appearance-none border rounded w-full py-2 px-3 leading-tight focus:outline-none focus:shadow-outline"></textarea>
+                <div>
+                    <label for="task-desc-input" class="block mb-1 font-medium text-blue-200">Descrição</label>
+                    <textarea id="task-desc-input" rows="3" class="w-full bg-slate-900/80 border border-slate-700 rounded-md py-2 px-3 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"></textarea>
                 </div>
-                <div class="mb-4">
-                    <label for="taskDueDate" class="block text-gray-300 text-sm font-bold mb-2">Data de Entrega</label>
-                    <input type="date" id="taskDueDate" name="dueDate" class="form-input shadow appearance-none border rounded w-full py-2 px-3 leading-tight focus:outline-none focus:shadow-outline">
+                <div>
+                    <label for="task-date-input" class="block mb-1 font-medium text-blue-200">Data de Entrega</label>
+                    <input type="date" id="task-date-input" class="w-full bg-slate-900/80 border border-slate-700 rounded-md py-2 px-3 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500" style="color-scheme: dark;">
                 </div>
-                <div class="mb-6">
-                    <label for="taskPriority" class="block text-gray-300 text-sm font-bold mb-2">Prioridade</label>
-                    <select id="taskPriority" name="priority" class="form-select shadow appearance-none border rounded w-full py-2 px-3 leading-tight focus:outline-none focus:shadow-outline">
-                        <option value="baixa" class="text-green-500">Baixa</option>
-                        <option value="media" class="text-yellow-500">Média</option>
-                        <option value="alta" class="text-red-500">Alta</option>
+                <div>
+                    <label for="task-assignee-select" class="block mb-1 font-medium text-blue-200">Quem está fazendo?</label>
+                    <select id="task-assignee-select" required class="w-full bg-slate-900/80 border border-slate-700 rounded-md py-2 px-3 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500">
+                        <option value="Moises">Moises</option>
+                        <option value="Berinho">Berinho</option>
+                        <option value="Markin">Markin</option>
+                        <option value="Ailton">Ailton</option>
                     </select>
                 </div>
-                <div class="flex items-center justify-end gap-4">
-                    <button type="button" id="cancelBtn" class="bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded-lg transition-colors">Cancelar</button>
-                    <button type="submit" class="bg-emerald-500 hover:bg-emerald-600 text-white font-bold py-2 px-4 rounded-lg transition-colors">Salvar Tarefa</button>
+                <div>
+                    <label for="task-priority-select" class="block mb-1 font-medium text-blue-200">Prioridade</label>
+                    <select id="task-priority-select" required class="w-full bg-slate-900/80 border border-slate-700 rounded-md py-2 px-3 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500">
+                        <option value="baixa">Baixa</option>
+                        <option value="media">Média</option>
+                        <option value="alta">Alta</option>
+                    </select>
+                </div>
+                <div class="flex justify-end gap-4 pt-4">
+                    <button type="button" id="modal-cancel-task-btn" class="bg-slate-600 hover:bg-slate-500 text-white font-bold py-2 px-6 rounded-md transition-colors">Cancelar</button>
+                    <button type="submit" class="bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-2 px-6 rounded-md transition-colors">Salvar</button>
                 </div>
             </form>
         </div>
     </div>
 
-    <script type="module" src="funcionalidades.js"></script>
+    <!-- Modal de Confirmação de Exclusão -->
+    <div id="confirmation-modal" class="modal-backdrop hidden">
+        <div class="modal-content"><p id="modal-text" class="mb-6 text-lg">Tem certeza?</p><div class="flex justify-center gap-4"><button id="modal-confirm-btn" class="bg-red-600 hover:bg-red-500 text-white font-bold py-2 px-6 rounded-md transition">Sim</button><button id="modal-cancel-btn" class="bg-slate-600 hover:bg-slate-500 text-white font-bold py-2 px-6 rounded-md transition">Cancelar</button></div></div>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, collection, doc, addDoc, updateDoc, deleteDoc, onSnapshot, query, getDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // SUAS CREDENCIAIS DO FIREBASE FORAM INSERIDAS AQUI
+        const firebaseConfig = {
+          apiKey: "AIzaSyCnth9bFA6ZgF4yHHRlO3MJSMMk9uPkhBE",
+          authDomain: "cartcanaagenda.firebaseapp.com",
+          projectId: "cartcanaagenda",
+          storageBucket: "cartcanaagenda.appspot.com",
+          messagingSenderId: "616302380967",
+          appId: "1:616302380967:web:3d83471eafb3e5c4ba1882"
+        };
+        
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+
+        let userId = null;
+        let tasksCollectionRef = null;
+
+        // Função para mostrar erros de autenticação na UI
+        function showAuthError(message) {
+            const errorDiv = document.getElementById('auth-error');
+            const errorMessage = document.getElementById('auth-error-message');
+            errorMessage.innerHTML = message; // Usar innerHTML para permitir tags HTML como <b>
+            errorDiv.classList.remove('hidden');
+        }
+
+        onAuthStateChanged(auth, async (user) => {
+            if (user) {
+                document.getElementById('auth-error').classList.add('hidden');
+                userId = user.uid;
+                document.getElementById('user-id-display').textContent = `ID de Usuário: ${userId}`;
+                tasksCollectionRef = collection(db, "tasks");
+                setupRealtimeListener();
+            } else {
+                try {
+                    await signInAnonymously(auth);
+                } catch (error) {
+                    console.error("Erro na autenticação anônima:", error);
+                    if (error.code === 'auth/configuration-not-found') {
+                        showAuthError(
+                            '<b>Erro de Configuração do Firebase:</b> O método de login anônimo não está ativado. ' +
+                            'Por favor, vá ao seu Console do Firebase, navegue até <b>Construir > Authentication > Sign-in method</b> e ative o provedor <b>Anônimo</b>.'
+                        );
+                    } else {
+                        showAuthError(`Erro de autenticação: ${error.message}`);
+                    }
+                }
+            }
+        });
+
+        const columns = document.querySelectorAll('.kanban-column');
+        const taskContainers = { todo: document.getElementById('todo-tasks'), inprogress: document.getElementById('inprogress-tasks'), done: document.getElementById('done-tasks') };
+        const confirmationModal = document.getElementById('confirmation-modal');
+        const modalConfirmBtn = document.getElementById('modal-confirm-btn');
+        const modalCancelBtn = document.getElementById('modal-cancel-btn');
+        const showAddTaskModalBtn = document.getElementById('show-add-task-modal-btn');
+        const addTaskModal = document.getElementById('add-task-modal');
+        const addTaskForm = document.getElementById('add-task-form');
+        const cancelTaskBtn = document.getElementById('modal-cancel-task-btn');
+        const modalTitle = document.getElementById('modal-title');
+        const taskIdInput = document.getElementById('task-id-input');
+        
+        let draggedTask = null;
+
+        function showConfirmationModal(text, onConfirm) {
+            document.getElementById('modal-text').textContent = text;
+            confirmationModal.classList.remove('hidden');
+            const newConfirmBtn = modalConfirmBtn.cloneNode(true);
+            modalConfirmBtn.parentNode.replaceChild(newConfirmBtn, modalConfirmBtn);
+            newConfirmBtn.addEventListener('click', () => { onConfirm(); hideConfirmationModal(); });
+        }
+        function hideConfirmationModal() { confirmationModal.classList.add('hidden'); }
+        modalCancelBtn.addEventListener('click', hideConfirmationModal);
+        
+        function hideTaskModal() {
+            addTaskModal.classList.add('hidden');
+            addTaskForm.reset();
+            taskIdInput.value = '';
+        }
+
+        showAddTaskModalBtn.addEventListener('click', () => {
+            modalTitle.textContent = "Criar Nova Tarefa";
+            addTaskModal.classList.remove('hidden');
+        });
+        cancelTaskBtn.addEventListener('click', hideTaskModal);
+        addTaskModal.addEventListener('click', (e) => { if (e.target === addTaskModal) { hideTaskModal(); } });
+
+        function createTaskElement(task) {
+            const taskEl = document.createElement('div');
+            taskEl.id = task.id;
+            taskEl.className = 'task bg-slate-800/80 p-4 rounded-lg shadow-lg flex flex-col gap-3';
+            taskEl.draggable = true;
+
+            const header = document.createElement('div');
+            header.className = 'flex justify-between items-start gap-2';
+            const taskText = document.createElement('p');
+            taskText.textContent = task.text;
+            taskText.className = 'font-bold text-lg text-slate-100 break-words';
+            const deleteBtn = document.createElement('button');
+            deleteBtn.innerHTML = '<i class="fas fa-trash-alt"></i>';
+            deleteBtn.className = 'delete-btn text-slate-500 text-sm';
+            deleteBtn.title = 'Excluir tarefa';
+            deleteBtn.onclick = (e) => {
+                e.stopPropagation();
+                showConfirmationModal('Tem certeza que deseja excluir esta tarefa?', async () => {
+                    const taskDocRef = doc(db, "tasks", task.id);
+                    await deleteDoc(taskDocRef);
+                });
+            };
+            header.appendChild(taskText);
+            header.appendChild(deleteBtn);
+
+            const description = document.createElement('p');
+            description.textContent = task.description;
+            description.className = 'text-sm text-slate-400 break-words';
+
+            const footer = document.createElement('div');
+            footer.className = 'flex flex-wrap justify-between items-center gap-x-4 gap-y-2 text-xs mt-2';
+            
+            const priority = document.createElement('span');
+            priority.textContent = task.priority.charAt(0).toUpperCase() + task.priority.slice(1);
+            priority.className = `priority-${task.priority} px-2.5 py-1 rounded-full font-semibold`;
+            
+            const details = document.createElement('div');
+            details.className = 'flex items-center gap-4 text-slate-400';
+
+            const assignee = document.createElement('span');
+            assignee.innerHTML = `<i class="fas fa-user mr-1.5"></i>${task.assignee}`;
+            assignee.title = `Responsável: ${task.assignee}`;
+            
+            const dueDate = document.createElement('span');
+            if (task.dueDate) {
+                const date = new Date(task.dueDate + 'T00:00:00');
+                dueDate.innerHTML = `<i class="fas fa-calendar-alt mr-1.5"></i>${date.toLocaleDateString('pt-BR')}`;
+                dueDate.title = `Entrega: ${date.toLocaleDateString('pt-BR')}`;
+            }
+
+            details.appendChild(assignee);
+            if(task.dueDate) details.appendChild(dueDate);
+
+            footer.appendChild(priority);
+            footer.appendChild(details);
+            
+            taskEl.appendChild(header);
+            if (task.description) taskEl.appendChild(description);
+            taskEl.appendChild(footer);
+
+            taskEl.addEventListener('dragstart', (e) => {
+                draggedTask = taskEl;
+                e.dataTransfer.setData('text/plain', task.id);
+                setTimeout(() => { taskEl.classList.add('dragging'); }, 0);
+            });
+            taskEl.addEventListener('dragend', () => {
+                draggedTask?.classList.remove('dragging');
+                draggedTask = null;
+            });
+            return taskEl;
+        }
+
+        function renderTasks(tasks) {
+            Object.values(taskContainers).forEach(container => container.innerHTML = '');
+            tasks.forEach(task => {
+                const taskEl = createTaskElement(task);
+                if (taskContainers[task.status]) {
+                    taskContainers[task.status].appendChild(taskEl);
+                }
+            });
+        }
+
+        function setupRealtimeListener() {
+            if (!tasksCollectionRef) return;
+            const q = query(tasksCollectionRef);
+            onSnapshot(q, (querySnapshot) => {
+                const tasks = [];
+                querySnapshot.forEach((doc) => {
+                    tasks.push({ id: doc.id, ...doc.data() });
+                });
+                renderTasks(tasks);
+            }, (error) => console.error("Erro ao buscar tarefas:", error));
+        }
+
+        addTaskForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            if (!tasksCollectionRef) return;
+            
+            const taskData = {
+                text: document.getElementById('task-name-input').value.trim(),
+                description: document.getElementById('task-desc-input').value.trim(),
+                dueDate: document.getElementById('task-date-input').value,
+                assignee: document.getElementById('task-assignee-select').value,
+                priority: document.getElementById('task-priority-select').value,
+                status: 'todo',
+                createdAt: new Date()
+            };
+
+            if (taskData.text) {
+                try {
+                    await addDoc(tasksCollectionRef, taskData);
+                    hideTaskModal();
+                } catch (error) { console.error("Erro ao adicionar tarefa:", error); }
+            }
+        });
+
+        columns.forEach(column => {
+            column.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                if (e.currentTarget !== draggedTask?.parentElement.parentElement) {
+                    e.currentTarget.classList.add('column-drag-over');
+                }
+            });
+            column.addEventListener('dragleave', (e) => { e.currentTarget.classList.remove('column-drag-over'); });
+            column.addEventListener('drop', async (e) => {
+                e.preventDefault();
+                e.currentTarget.classList.remove('column-drag-over');
+                const taskId = e.dataTransfer.getData('text/plain');
+                const newStatus = column.id;
+                if (taskId && newStatus) {
+                    const taskDocRef = doc(db, "tasks", taskId);
+                    try {
+                        await updateDoc(taskDocRef, { status: newStatus });
+                    } catch (error) { console.error("Erro ao mover tarefa:", error); }
+                }
+            });
+        });
+    </script>
 </body>
 </html>
