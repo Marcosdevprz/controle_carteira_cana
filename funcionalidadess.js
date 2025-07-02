@@ -12,8 +12,8 @@ const firebaseConfig = {
     apiKey: "AIzaSyDuCRjLF1aNgfh0bPKiknm1HWUQ1dA6dmI",
     authDomain: "carteiracana.firebaseapp.com",
     projectId: "carteiracana",
-    // A CORREÇÃO ESTÁ NESTA LINHA:
-    storageBucket: "carteiracana.appspot.com", // DEVE SER appspot.com
+    // CORREÇÃO FINAL: Revertendo para o valor original fornecido pelo Firebase.
+    storageBucket: "carteiracana.firebasestorage.app",
     messagingSenderId: "950424552534",
     appId: "1:950424552534:web:b96c8a85ba02e4868127f7"
 };
