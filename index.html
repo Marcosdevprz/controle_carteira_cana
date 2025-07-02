@@ -42,12 +42,31 @@
         .column-drag-over {
             background-color: rgba(30, 41, 59, 0.7); /* slate-800 com transparência */
         }
-        .delete-btn {
-            opacity: 0;
-            transition: opacity 0.2s ease, color 0.2s ease;
+        /* Menu de opções do card */
+        .options-menu {
+            display: none;
+            position: absolute;
+            right: 0;
+            top: 2.5rem; /* Abaixo do botão de opções */
+            background-color: #1e293b; /* slate-800 */
+            border-radius: 0.5rem;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+            z-index: 10;
+            border: 1px solid #334155;
         }
-        .task:hover .delete-btn { opacity: 1; }
-        .delete-btn:hover { color: #f87171; /* red-400 */ }
+        .options-menu button {
+            display: block;
+            width: 100%;
+            padding: 0.5rem 1rem;
+            text-align: left;
+            white-space: nowrap;
+        }
+        .options-menu button:hover {
+            background-color: #334155; /* slate-700 */
+        }
+        .options-container:hover .options-menu {
+            display: block;
+        }
         
         /* Estilo para o modal */
         .modal-backdrop {
@@ -61,9 +80,15 @@
             background-color: rgba(30, 41, 59, 0.8); /* slate-800 com mais transparência */
             backdrop-filter: blur(16px);
             border: 1px solid rgba(51, 65, 85, 0.5);
-            padding: 2rem; border-radius: 0.75rem; /* rounded-xl */
+            padding: 1.5rem; /* Padding menor para telas pequenas */
+            border-radius: 0.75rem; /* rounded-xl */
             box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.4);
             max-width: 95%; width: 500px; max-height: 90vh; overflow-y: auto;
+        }
+        @media (min-width: 640px) {
+            .modal-content {
+                padding: 2rem;
+            }
         }
         .priority-baixa { background-color: #10B981; color: white; } /* Emerald-500 */
         .priority-media { background-color: #F59E0B; color: white; } /* Amber-500 */
@@ -78,15 +103,15 @@
 <body class="text-slate-200 p-4 sm:p-6 md:p-8">
 
     <!-- Error Message Display -->
-    <div id="auth-error" class="hidden fixed top-5 left-1/2 -translate-x-1/2 bg-red-600 text-white p-4 rounded-lg shadow-lg z-[1001] max-w-xl text-center">
+    <div id="auth-error" class="hidden fixed top-5 left-1/2 -translate-x-1/2 bg-red-600 text-white p-4 rounded-lg shadow-lg z-[1001] max-w-xl w-[90%] text-center">
         <p id="auth-error-message"></p>
     </div>
 
     <div class="container mx-auto max-w-7xl">
         
         <header class="text-center mb-10">
-            <h1 class="text-4xl md:text-5xl font-bold text-emerald-400 title-glow">Agenda Laranjeiras</h1>
-            <p class="text-blue-300 mt-2 text-lg">Organize suas tarefas de forma simples e colaborativa.</p>
+            <h1 class="text-3xl sm:text-4xl md:text-5xl font-bold text-emerald-400 title-glow">Agenda Laranjeiras</h1>
+            <p class="text-blue-300 mt-2 text-base sm:text-lg">Organize suas tarefas de forma simples e colaborativa.</p>
             <p id="user-id-display" class="text-xs text-slate-500 mt-2"></p>
         </header>
 
@@ -97,10 +122,10 @@
             </button>
         </div>
 
-        <div id="kanban-board" class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div id="kanban-board" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
             <div id="todo" class="kanban-column rounded-xl p-4 shadow-lg"><h2 class="font-bold text-2xl mb-4 text-center text-blue-300 border-b-2 border-blue-400/50 pb-2">A Fazer</h2><div id="todo-tasks" class="space-y-4"></div></div>
             <div id="inprogress" class="kanban-column rounded-xl p-4 shadow-lg"><h2 class="font-bold text-2xl mb-4 text-center text-yellow-300 border-b-2 border-yellow-400/50 pb-2">Em Andamento</h2><div id="inprogress-tasks" class="space-y-4"></div></div>
-            <div id="done" class="kanban-column rounded-xl p-4 shadow-lg"><h2 class="font-bold text-2xl mb-4 text-center text-emerald-300 border-b-2 border-emerald-400/50 pb-2">Concluído</h2><div id="done-tasks" class="space-y-4"></div></div>
+            <div id="done" class="kanban-column rounded-xl p-4 shadow-lg sm:col-span-2 lg:col-span-1"><h2 class="font-bold text-2xl mb-4 text-center text-emerald-300 border-b-2 border-emerald-400/50 pb-2">Concluído</h2><div id="done-tasks" class="space-y-4"></div></div>
         </div>
     </div>
 
@@ -139,7 +164,7 @@
                         <option value="alta">Alta</option>
                     </select>
                 </div>
-                <div class="flex justify-end gap-4 pt-4">
+                <div class="flex flex-col sm:flex-row justify-end gap-4 pt-4">
                     <button type="button" id="modal-cancel-task-btn" class="bg-slate-600 hover:bg-slate-500 text-white font-bold py-2 px-6 rounded-md transition-colors">Cancelar</button>
                     <button type="submit" class="bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-2 px-6 rounded-md transition-colors">Salvar</button>
                 </div>
@@ -157,7 +182,6 @@
         import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, collection, doc, addDoc, updateDoc, deleteDoc, onSnapshot, query, getDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-        // SUAS CREDENCIAIS DO FIREBASE FORAM INSERIDAS AQUI
         const firebaseConfig = {
           apiKey: "AIzaSyCnth9bFA6ZgF4yHHRlO3MJSMMk9uPkhBE",
           authDomain: "cartcanaagenda.firebaseapp.com",
@@ -174,11 +198,10 @@
         let userId = null;
         let tasksCollectionRef = null;
 
-        // Função para mostrar erros de autenticação na UI
         function showAuthError(message) {
             const errorDiv = document.getElementById('auth-error');
             const errorMessage = document.getElementById('auth-error-message');
-            errorMessage.innerHTML = message; // Usar innerHTML para permitir tags HTML como <b>
+            errorMessage.innerHTML = message;
             errorDiv.classList.remove('hidden');
         }
 
@@ -195,10 +218,7 @@
                 } catch (error) {
                     console.error("Erro na autenticação anônima:", error);
                     if (error.code === 'auth/configuration-not-found') {
-                        showAuthError(
-                            '<b>Erro de Configuração do Firebase:</b> O método de login anônimo não está ativado. ' +
-                            'Por favor, vá ao seu Console do Firebase, navegue até <b>Construir > Authentication > Sign-in method</b> e ative o provedor <b>Anônimo</b>.'
-                        );
+                        showAuthError('<b>Erro de Configuração:</b> O login anônimo não está ativado no Firebase. Por favor, ative-o no Console do Firebase em <b>Authentication > Sign-in method</b>.');
                     } else {
                         showAuthError(`Erro de autenticação: ${error.message}`);
                     }
@@ -238,10 +258,31 @@
 
         showAddTaskModalBtn.addEventListener('click', () => {
             modalTitle.textContent = "Criar Nova Tarefa";
+            addTaskForm.reset();
+            taskIdInput.value = '';
             addTaskModal.classList.remove('hidden');
         });
         cancelTaskBtn.addEventListener('click', hideTaskModal);
         addTaskModal.addEventListener('click', (e) => { if (e.target === addTaskModal) { hideTaskModal(); } });
+
+        async function openEditModal(taskId) {
+            const taskDocRef = doc(db, "tasks", taskId);
+            const docSnap = await getDoc(taskDocRef);
+
+            if (docSnap.exists()) {
+                const task = docSnap.data();
+                modalTitle.textContent = "Editar Tarefa";
+                taskIdInput.value = taskId;
+                document.getElementById('task-name-input').value = task.text || '';
+                document.getElementById('task-desc-input').value = task.description || '';
+                document.getElementById('task-date-input').value = task.dueDate || '';
+                document.getElementById('task-assignee-select').value = task.assignee || 'Moises';
+                document.getElementById('task-priority-select').value = task.priority || 'baixa';
+                addTaskModal.classList.remove('hidden');
+            } else {
+                console.error("Tarefa não encontrada para edição!");
+            }
+        }
 
         function createTaskElement(task) {
             const taskEl = document.createElement('div');
@@ -254,19 +295,42 @@
             const taskText = document.createElement('p');
             taskText.textContent = task.text;
             taskText.className = 'font-bold text-lg text-slate-100 break-words';
+            
+            const optionsContainer = document.createElement('div');
+            optionsContainer.className = 'options-container relative flex-shrink-0';
+
+            const optionsBtn = document.createElement('button');
+            optionsBtn.innerHTML = '<i class="fas fa-ellipsis-v text-slate-400 hover:text-white"></i>';
+            optionsBtn.className = 'p-1';
+            
+            const optionsMenu = document.createElement('div');
+            optionsMenu.className = 'options-menu';
+
+            const editBtn = document.createElement('button');
+            editBtn.innerHTML = '<i class="fas fa-edit w-4 mr-2"></i>Editar';
+            editBtn.onclick = (e) => {
+                e.stopPropagation();
+                openEditModal(task.id);
+            };
+
             const deleteBtn = document.createElement('button');
-            deleteBtn.innerHTML = '<i class="fas fa-trash-alt"></i>';
-            deleteBtn.className = 'delete-btn text-slate-500 text-sm';
-            deleteBtn.title = 'Excluir tarefa';
+            deleteBtn.innerHTML = '<i class="fas fa-trash-alt w-4 mr-2"></i>Remover';
+            deleteBtn.className += ' text-red-400 hover:text-red-300';
             deleteBtn.onclick = (e) => {
                 e.stopPropagation();
-                showConfirmationModal('Tem certeza que deseja excluir esta tarefa?', async () => {
+                showConfirmationModal('Tem certeza que deseja remover esta tarefa?', async () => {
                     const taskDocRef = doc(db, "tasks", task.id);
                     await deleteDoc(taskDocRef);
                 });
             };
+            
+            optionsMenu.appendChild(editBtn);
+            optionsMenu.appendChild(deleteBtn);
+            optionsContainer.appendChild(optionsBtn);
+            optionsContainer.appendChild(optionsMenu);
+            
             header.appendChild(taskText);
-            header.appendChild(deleteBtn);
+            header.appendChild(optionsContainer);
 
             const description = document.createElement('p');
             description.textContent = task.description;
@@ -341,21 +405,30 @@
             e.preventDefault();
             if (!tasksCollectionRef) return;
             
+            const editingTaskId = taskIdInput.value;
+
             const taskData = {
                 text: document.getElementById('task-name-input').value.trim(),
                 description: document.getElementById('task-desc-input').value.trim(),
                 dueDate: document.getElementById('task-date-input').value,
                 assignee: document.getElementById('task-assignee-select').value,
                 priority: document.getElementById('task-priority-select').value,
-                status: 'todo',
-                createdAt: new Date()
             };
 
-            if (taskData.text) {
-                try {
+            if (!taskData.text) return;
+
+            try {
+                if (editingTaskId) {
+                    const taskDocRef = doc(db, "tasks", editingTaskId);
+                    await updateDoc(taskDocRef, taskData);
+                } else {
+                    taskData.status = 'todo';
+                    taskData.createdAt = new Date();
                     await addDoc(tasksCollectionRef, taskData);
-                    hideTaskModal();
-                } catch (error) { console.error("Erro ao adicionar tarefa:", error); }
+                }
+                hideTaskModal();
+            } catch (error) { 
+                console.error("Erro ao salvar tarefa:", error); 
             }
         });
 
